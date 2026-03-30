@@ -182,31 +182,31 @@ with st.sidebar:
                                      type=["xlsx", "xls"])
 
     if uploaded_file:
-    try:
-        st.session_state["df"] = pd.read_excel(uploaded_file)
-        df = st.session_state["df"]
+        try:
+            st.session_state["df"] = pd.read_excel(uploaded_file)
+            df = st.session_state["df"]
 
-        st.success(f"✅ {df.shape[0]} rows × {df.shape[1]} columns")
+            st.success(f"✅ {df.shape[0]} rows × {df.shape[1]} columns")
 
-        col1, col2, col3, col4 = st.columns(4)
+            col1, col2, col3, col4 = st.columns(4)
 
-        with col1:
-            st.metric("📄 Rows", df.shape[0])
+            with col1:
+                st.metric("📄 Rows", df.shape[0])
 
-        with col2:
-            st.metric("📊 Columns", df.shape[1])
+            with col2:
+                    st.metric("📊 Columns", df.shape[1])
 
-        with col3:
-            st.metric("❗ Missing", df.isna().sum().sum())
+            with col3:
+                st.metric("❗ Missing", df.isna().sum().sum())
 
-        with col4:
-            st.metric(
+            with col4:
+                st.metric(
                 "🔢 Numeric",
                 df.select_dtypes(include=np.number).shape[1]
             )
 
-    except Exception as exc:
-        st.error(f"Error reading file: {exc}")
+        except Exception as exc:
+            st.error(f"Error reading file: {exc}")
 
         df: pd.DataFrame = st.session_state.get("df", None)
 
@@ -268,12 +268,12 @@ if df is None:
     """, unsafe_allow_html=True)
 
     st.markdown("""
-Upload your **Excel file** from the sidebar to start analysing your survey / questionnaire data.
-""")
-st.markdown("### 📊 Available Analyses")
-    #### ================  Available Analyses
-    
-col1, col2 = st.columns(2)
+    Upload your **Excel file** from the sidebar to start analysing your survey / questionnaire data.
+    """)
+
+    st.markdown("### 📊 Available Analyses")
+
+    col1, col2 = st.columns(2)
 
 st.markdown("### 📊 Available Analyses")
 
