@@ -72,6 +72,42 @@ st.markdown("""
     /* Section headers */
     h3 { color: #1e3a5f; }
     h4 { color: #2980b9; margin-top: 1rem; }
+/* Sidebar premium background */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #f8fafc, #eef2ff);
+    border-right: 1px solid #dbeafe;
+}
+
+/* Premium run button */
+.stButton > button {
+    background: linear-gradient(90deg,#2563eb,#1d4ed8);
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 4px 10px rgba(37,99,235,0.3);
+}
+
+/* Card hover */
+.dashboard-card {
+    background: white;
+    padding: 18px;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+    margin-bottom: 15px;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+        
+
+        
 </style>
 """, unsafe_allow_html=True)
 
@@ -150,6 +186,22 @@ with st.sidebar:
             st.session_state["df"] = pd.read_excel(uploaded_file)
             df = st.session_state["df"]
             st.success(f"✅  {df.shape[0]} rows  ×  {df.shape[1]} columns")
+            col1, col2, col3, col4 = st.columns(4)
+
+            with col1:
+                st.metric("📄 Rows", df.shape[0])
+
+            with col2:
+                st.metric("📊 Columns", df.shape[1])
+
+            with col3:
+                st.metric("❗ Missing", df.isna().sum().sum())
+
+            with col4:
+                st.metric(
+        "🔢 Numeric",
+        df.select_dtypes(include=np.number).shape[1]
+    )
         except Exception as exc:
             st.error(f"Error reading file: {exc}")
 
@@ -204,7 +256,12 @@ with st.sidebar:
 st.success("🚀 Upload your dataset from the left sidebar and start analysis instantly")
 if df is None:
     st.markdown("""
-### Welcome! 👋
+<div class="dashboard-card">
+    <h2>👋 Welcome to HS Statistical Assistant</h2>
+    <p style="font-size:16px;color:#6b7280;">
+        🚀 Upload your Excel dataset and start advanced statistical analysis instantly.
+    </p>
+</div>
 
 Upload your **Excel file** from the sidebar to start analysing your survey / questionnaire data.
 
@@ -225,7 +282,7 @@ All reports can be **downloaded as PDF** ⬇
 
     st.markdown("---")
     st.markdown("""
-<div style='text-align:center; color:#6b7280; font-size:0.9rem; margin-top:20px; line-height:1.8;'>
+<div style='text-align:center; background:#f8fafc; color:#6b7280; font-size:0.9rem; margin-top:25px; padding:18px; border-radius:12px; border-top:3px solid #2563eb; line-height:1.8;'>               
     <b>HS-Statistical Assistant</b><br>
     Developed by <b>Haytham Saleh</b><br>
     DBA Candidate | MBA | MSc | MCTS | MCSE | SAS <br>
