@@ -268,11 +268,14 @@ if df is None:
     """, unsafe_allow_html=True)
 
     st.markdown("""
-    Upload your **Excel file** from the sidebar to start analysing your survey / questionnaire data.
-
-    #### Available Analyses
+Upload your **Excel file** from the sidebar to start analysing your survey / questionnaire data.
+""")
+st.markdown("### 📊 Available Analyses")
+    #### ================  Available Analyses
     
-   st.markdown("### 📊 Available Analyses")
+col1, col2 = st.columns(2)
+
+st.markdown("### 📊 Available Analyses")
 
 col1, col2 = st.columns(2)
 
@@ -282,23 +285,17 @@ with col1:
         <h4>📊 Descriptive</h4>
         <p>Descriptive Stats, Frequency Tables</p>
     </div>
-    """, unsafe_allow_html=True)
 
-    st.markdown("""
     <div class="dashboard-card">
         <h4>🔗 Correlation</h4>
         <p>Pearson, Spearman, Heatmap</p>
     </div>
-    """, unsafe_allow_html=True)
 
-    st.markdown("""
     <div class="dashboard-card">
         <h4>Σ Factor</h4>
         <p>KMO, Bartlett, Varimax Rotation</p>
     </div>
-    """, unsafe_allow_html=True)
 
-    st.markdown("""
     <div class="dashboard-card">
         <h4>β Regression</h4>
         <p>Simple, Multiple, Logistic</p>
@@ -311,29 +308,22 @@ with col2:
         <h4>📐 Normality</h4>
         <p>Shapiro-Wilk, KS, QQ-Plot</p>
     </div>
-    """, unsafe_allow_html=True)
 
-    st.markdown("""
     <div class="dashboard-card">
         <h4>α Reliability</h4>
         <p>Cronbach's Alpha, Item Analysis</p>
     </div>
-    """, unsafe_allow_html=True)
 
-    st.markdown("""
     <div class="dashboard-card">
         <h4>t Comparative</h4>
         <p>T-Test, ANOVA, Chi-Square</p>
     </div>
-    """, unsafe_allow_html=True)
 
-    st.markdown("""
     <div class="dashboard-card">
         <h4>⟳ Mediation</h4>
         <p>Bootstrap 1000, Sobel, Path Diagram</p>
     </div>
     """, unsafe_allow_html=True)
-
 
 
 
