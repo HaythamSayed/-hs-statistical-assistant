@@ -120,15 +120,23 @@ def pdf_download_button(title: str, report: str, figs=None, filename="report.pdf
 
 # ─────────────────────────────────────────────
 # HEADER
-# ─────────────────────────────────────────────
+
 st.markdown("""
-<div class="main-header">
-  <h2>📊 HS-Statistical Assistant</h2>
-  <p>Professional Statistical Analysis Platform for Academic Researchers &nbsp;|&nbsp; Developed by Haytham Saleh</p>
+<div style="
+    background: linear-gradient(90deg,#1e3a8a,#2563eb);
+    padding:25px;
+    border-radius:15px;
+    color:white;
+    margin-bottom:20px;
+    box-shadow:0 4px 15px rgba(0,0,0,0.2);
+">
+    <h1>📊 HS-Statistical Assistant</h1>
+    <p style="font-size:18px;">
+        Professional Statistical Analysis Platform for Researchers & Academics
+    </p>
+    <p><b>Developed by Haytham Saleh</b></p>
 </div>
 """, unsafe_allow_html=True)
-
-
 # ─────────────────────────────────────────────
 # SIDEBAR  ─  Upload + Variable Selection
 # ─────────────────────────────────────────────
@@ -193,6 +201,7 @@ with st.sidebar:
 # ─────────────────────────────────────────────
 # WELCOME SCREEN
 # ─────────────────────────────────────────────
+st.success("🚀 Upload your dataset from the left sidebar and start analysis instantly")
 if df is None:
     st.markdown("""
 ### Welcome! 👋
@@ -1482,12 +1491,15 @@ else:
 
 # ─────────────────────────────────────────────
 # FOOTER
-# ─────────────────────────────────────────────
+
 st.markdown("---")
+
 st.markdown(
-    "<div style='text-align:center; color:#888; font-size:0.8rem;'>"
-    "HS-Statistical Assistant  •  Developed by Haytham Saleh  •  "
-    "DBA Candidate | MBA | MSc. | MCTS | MCSE  •  2026 All Rights Reserved"
-    "</div>",
-    unsafe_allow_html=True,
+    """
+    <div style='text-align:center; color:#6b7280; font-size:0.9rem; margin-top:20px;'>
+        <b>HS-Statistical Assistant</b> | Developed by <b>Haytham Saleh</b><br>
+        DBA Candidate | MBA | MSc | MCTS | MCSE | SAS © 2026 All Rights Reserved
+    </div>
+    """,
+    unsafe_allow_html=True
 )
