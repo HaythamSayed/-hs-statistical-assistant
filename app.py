@@ -228,7 +228,7 @@ All reports can be **downloaded as PDF** ⬇
 <div style='text-align:center; color:#6b7280; font-size:0.9rem; margin-top:20px; line-height:1.8;'>
     <b>HS-Statistical Assistant</b><br>
     Developed by <b>Haytham Saleh</b><br>
-    DBA Candidate | MBA | MSc | MCTS | MCSE<br>
+    DBA Candidate | MBA | MSc | MCTS | MCSE | SAS <br>
     📞 Phone / WhatsApp: <a href="https://wa.me/201001693305" target="_blank"><b>+20 100 169 3305</b></a><br>
     © 2026 All Rights Reserved
 </div>
