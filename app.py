@@ -256,29 +256,29 @@ with st.sidebar:
 st.success("🚀 Upload your dataset from the left sidebar and start analysis instantly")
 if df is None:
     st.markdown("""
-<div class="dashboard-card">
-    <h2>👋 Welcome to HS Statistical Assistant</h2>
-    <p style="font-size:16px;color:#6b7280;">
-        🚀 Upload your Excel dataset and start advanced statistical analysis instantly.
-    </p>
-</div>
+    <div class="dashboard-card">
+        <h2>👋 Welcome to HS Statistical Assistant</h2>
+        <p style="font-size:16px;color:#6b7280;">
+            🚀 Upload your Excel dataset and start advanced statistical analysis instantly.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
-Upload your **Excel file** from the sidebar to start analysing your survey / questionnaire data.
+    st.markdown("""
+    Upload your **Excel file** from the sidebar to start analysing your survey / questionnaire data.
 
-#### Available Analyses
-| Category | Tests |
-|---|---|
-| 📊 Descriptive | Descriptive Stats, Frequency Tables |
-| 📐 Normality | Shapiro-Wilk, KS, Anderson-Darling, QQ-Plot |
-| 🔗 Correlation | Pearson, Spearman, Heatmap |
-| α Reliability | Cronbach's Alpha, Item-Total, Alpha-if-Deleted |
-| Σ Factor | KMO, Bartlett, Varimax Rotation, Scree Plot |
-| t Comparative | T-Test (Cohen's d, Levene), ANOVA (Tukey), Chi-Square (Cramer's V) |
-| β Regression | Simple, Multiple (Std. Beta), Logistic (OR, ROC) |
-| ⟳ Mediation | Bootstrap 1000, Sobel, Path Diagram |
-
-All reports can be **downloaded as PDF** ⬇
-""")
+    #### Available Analyses
+    | Category | Tests |
+    |---|---|
+    | 📊 Descriptive | Descriptive Stats, Frequency Tables |
+    | 📐 Normality | Shapiro-Wilk, KS, Anderson-Darling, QQ-Plot |
+    | 🔗 Correlation | Pearson, Spearman, Heatmap |
+    | α Reliability | Cronbach's Alpha, Item-Total, Alpha-if-Deleted |
+    | Σ Factor | KMO, Bartlett, Varimax Rotation, Scree Plot |
+    | t Comparative | T-Test, ANOVA, Chi-Square |
+    | β Regression | Simple, Multiple, Logistic |
+    | ⟳ Mediation | Bootstrap 1000, Sobel, Path Diagram |
+    """)
 
     st.markdown("---")
     st.markdown("""
