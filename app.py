@@ -182,30 +182,33 @@ with st.sidebar:
                                      type=["xlsx", "xls"])
 
     if uploaded_file:
-        try:
-            st.session_state["df"] = pd.read_excel(uploaded_file)
-            df = st.session_state["df"]
-            st.success(f"✅  {df.shape[0]} rows  ×  {df.shape[1]} columns")
-            col1, col2, col3, col4 = st.columns(4)
+    try:
+        st.session_state["df"] = pd.read_excel(uploaded_file)
+        df = st.session_state["df"]
 
-            with col1:
-                st.metric("📄 Rows", df.shape[0])
+        st.success(f"✅ {df.shape[0]} rows × {df.shape[1]} columns")
 
-            with col2:
-                st.metric("📊 Columns", df.shape[1])
+        col1, col2, col3, col4 = st.columns(4)
 
-            with col3:
-                st.metric("❗ Missing", df.isna().sum().sum())
+        with col1:
+            st.metric("📄 Rows", df.shape[0])
 
-            with col4:
-                st.metric(
-        "🔢 Numeric",
-        df.select_dtypes(include=np.number).shape[1]
-    )
-        except Exception as exc:
-            st.error(f"Error reading file: {exc}")
+        with col2:
+            st.metric("📊 Columns", df.shape[1])
 
-    df: pd.DataFrame = st.session_state.get("df", None)
+        with col3:
+            st.metric("❗ Missing", df.isna().sum().sum())
+
+        with col4:
+            st.metric(
+                "🔢 Numeric",
+                df.select_dtypes(include=np.number).shape[1]
+            )
+
+    except Exception as exc:
+        st.error(f"Error reading file: {exc}")
+
+        df: pd.DataFrame = st.session_state.get("df", None)
 
     if df is not None:
         all_cols = list(df.columns)
@@ -268,17 +271,71 @@ if df is None:
     Upload your **Excel file** from the sidebar to start analysing your survey / questionnaire data.
 
     #### Available Analyses
-    | Category | Tests |
-    |---|---|
-    | 📊 Descriptive | Descriptive Stats, Frequency Tables |
-    | 📐 Normality | Shapiro-Wilk, KS, Anderson-Darling, QQ-Plot |
-    | 🔗 Correlation | Pearson, Spearman, Heatmap |
-    | α Reliability | Cronbach's Alpha, Item-Total, Alpha-if-Deleted |
-    | Σ Factor | KMO, Bartlett, Varimax Rotation, Scree Plot |
-    | t Comparative | T-Test, ANOVA, Chi-Square |
-    | β Regression | Simple, Multiple, Logistic |
-    | ⟳ Mediation | Bootstrap 1000, Sobel, Path Diagram |
-    """)
+    
+   st.markdown("### 📊 Available Analyses")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.markdown("""
+    <div class="dashboard-card">
+        <h4>📊 Descriptive</h4>
+        <p>Descriptive Stats, Frequency Tables</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="dashboard-card">
+        <h4>🔗 Correlation</h4>
+        <p>Pearson, Spearman, Heatmap</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="dashboard-card">
+        <h4>Σ Factor</h4>
+        <p>KMO, Bartlett, Varimax Rotation</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="dashboard-card">
+        <h4>β Regression</h4>
+        <p>Simple, Multiple, Logistic</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col2:
+    st.markdown("""
+    <div class="dashboard-card">
+        <h4>📐 Normality</h4>
+        <p>Shapiro-Wilk, KS, QQ-Plot</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="dashboard-card">
+        <h4>α Reliability</h4>
+        <p>Cronbach's Alpha, Item Analysis</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="dashboard-card">
+        <h4>t Comparative</h4>
+        <p>T-Test, ANOVA, Chi-Square</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="dashboard-card">
+        <h4>⟳ Mediation</h4>
+        <p>Bootstrap 1000, Sobel, Path Diagram</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+
 
     st.markdown("---")
     st.markdown("""
