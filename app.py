@@ -193,10 +193,28 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("""
-<div style='text-align:center; font-size:.78rem; color:#64748b; line-height:1.8;'>
+<div style='text-align:center; font-size:.78rem; color:#64748b; line-height:2;'>
   <b>Haytham Saleh</b><br>
-  📞 <a href="https://wa.me/201001693305" target="_blank">+20 100 169 3305</a><br>
-  © 2026 All Rights Reserved
+  📞 <a href="https://wa.me/201001693305" target="_blank" style="color:#2563eb;">+20 100 169 3305</a><br>
+  <a href="https://www.linkedin.com/in/haytham-saleh-0b407226/" target="_blank"
+     style="display:inline-flex; align-items:center; gap:5px; background:#0a66c2;
+            color:white; padding:5px 12px; border-radius:6px; text-decoration:none;
+            font-weight:bold; font-size:.8rem; margin-top:4px;">
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+         fill="white" style="vertical-align:middle;">
+      <path d="M20.447 20.452H17.21v-5.569c0-1.328-.027-3.037-1.852-3.037
+               -1.853 0-2.136 1.445-2.136 2.939v5.667H9.987V9h3.102v1.561h.044
+               c.432-.818 1.487-1.681 3.059-1.681 3.271 0 3.874 2.152 3.874 4.95v6.622z
+               M5.337 7.433a1.8 1.8 0 1 1 0-3.6 1.8 1.8 0 0 1 0 3.6z
+               M6.95 20.452H3.723V9H6.95v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729
+               v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271
+               V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+    </svg>
+    LinkedIn Profile
+  </a><br>
+  <span style="font-size:.72rem; color:#94a3b8; margin-top:4px; display:block;">
+    © 2026 All Rights Reserved
+  </span>
 </div>""", unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────
@@ -1027,7 +1045,23 @@ else:
 # ─────────────────────────────────────────────
 st.markdown("---")
 st.markdown("""
-<div style='text-align:center; color:#9ca3af; font-size:.8rem;'>
+<div style='text-align:center; color:#9ca3af; font-size:.8rem; line-height:2;'>
   HS-Statistical Assistant &nbsp;|&nbsp; Developed by <b>Haytham Saleh</b> &nbsp;|&nbsp;
-  DBA Candidate · MBA · MSc · MCTS · MCSE · SAS &nbsp;|&nbsp; © 2026 All Rights Reserved
+  DBA Candidate · MBA · MSc · MCTS · MCSE · SAS &nbsp;|&nbsp; © 2026 All Rights Reserved<br>
+  <a href="https://www.linkedin.com/in/haytham-saleh-0b407226/" target="_blank"
+     style="display:inline-flex; align-items:center; gap:5px; background:#0a66c2;
+            color:white; padding:4px 12px; border-radius:6px; text-decoration:none;
+            font-weight:bold; font-size:.78rem; margin-top:6px;">
+    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+         fill="white" style="vertical-align:middle;">
+      <path d="M20.447 20.452H17.21v-5.569c0-1.328-.027-3.037-1.852-3.037
+               -1.853 0-2.136 1.445-2.136 2.939v5.667H9.987V9h3.102v1.561h.044
+               c.432-.818 1.487-1.681 3.059-1.681 3.271 0 3.874 2.152 3.874 4.95v6.622z
+               M5.337 7.433a1.8 1.8 0 1 1 0-3.6 1.8 1.8 0 0 1 0 3.6z
+               M6.95 20.452H3.723V9H6.95v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729
+               v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271
+               V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+    </svg>
+    Connect on LinkedIn
+  </a>
 </div>""", unsafe_allow_html=True)
