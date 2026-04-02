@@ -281,7 +281,16 @@ if df is None:
 with st.expander("📋  Data Preview  (first 30 rows)", expanded=False):
     st.dataframe(df.head(30), use_container_width=True)
 
-if not run_btn:
+# ─────────────────────────────────────────────
+# PERSIST RUN BUTTON STATE
+# ─────────────────────────────────────────────
+if "run_analysis_clicked" not in st.session_state:
+    st.session_state["run_analysis_clicked"] = False
+
+if run_btn:
+    st.session_state["run_analysis_clicked"] = True
+
+if not st.session_state["run_analysis_clicked"]:
     st.info("👈  Select your variables and analysis from the sidebar, then press **▶ Run Analysis**")
     st.stop()
 
