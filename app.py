@@ -527,16 +527,44 @@ elif analysis == "Reliability  (Cronbach Alpha)":
 # ─────────────────────────────────────────────
 elif analysis == "Factor Analysis":
     try:
+        import factor_analyzer.factor_analyzer
+        import sklearn.utils.validation
+        _original = sklearn.utils.validation.check_array
+        
+        def _patched_check_array(*args, **kwargs):
+            if "force_all_finite" in kwargs:
+                val = kwargs.pop("force_all_finite")
+                kwargs["ensure_all_finite"] = val
+            try:
+                return _original(*args, **kwargs)
+            except TypeError:
+                kwargs.pop("ensure_all_finite", None)
+                return _original(*args, **kwargs)
+                
+        factor_analyzer.factor_analyzer.check_array = _patched_check_array
+        
         from factor_analyzer import FactorAnalyzer, calculate_kmo, calculate_bartlett_sphericity
     except ImportError:
-        st.error("'factor_analyzer' library not found."); st.stop()
+        st.error("'factor_analyzer' or 'scikit-learn' library not found."); st.stop()
     if len(selected_vars) < 3: st.error("Select at least 3 variables."); st.stop()
-    data = df[selected_vars].apply(pd.to_numeric, errors="coerce").dropna()
-    if data.shape[0] == 0: st.error("No valid data."); st.stop()
+    data = df[selected_vars].apply(pd.to_numeric, errors="coerce").replace([np.inf, -np.inf], np.nan).dropna()
+    if data.shape[0] < 3: st.error("Not enough valid data rows."); st.stop()
+    
+    # Check for zero variance
+    variances = data.var()
+    valid_cols = variances[variances > 0].index.tolist()
+    if len(valid_cols) < len(selected_vars):
+        st.warning(f"⚠️ Removed {len(selected_vars) - len(valid_cols)} variable(s) with zero variance (constant values).")
+    
+    if len(valid_cols) < 3:
+        st.error("Factor Analysis requires at least 3 variables with non-zero variance."); st.stop()
+    
+    data = data[valid_cols]
+    
     kmo_all, kmo_model  = calculate_kmo(data)
     chi2_val, bart_p    = calculate_bartlett_sphericity(data)
     
-    # Convert data to pure numpy float array to avoid sklearn check_array TypeErrors
+    # Convert data safely
     X = data.to_numpy(dtype=float, copy=True)
     
     fa0 = FactorAnalyzer(rotation=None); fa0.fit(X)
