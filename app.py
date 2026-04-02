@@ -1054,7 +1054,11 @@ elif analysis == "Mediation Analysis":
 elif analysis == "Composite Variable":
     st.subheader("⊕  Composite Variable Builder")
 
-    # ── Step 1 : pick columns ──────────────────────────────────────────────
+    # Show success message from a previous addition before the rerun
+    if "composite_success_msg" in st.session_state:
+        st.success(st.session_state.pop("composite_success_msg"))
+
+    # ── Step 1 : Pick columns ──────────────────────────────────────────────
     num_cols = list(df.select_dtypes(include=np.number).columns)
     if len(num_cols) < 2:
         st.error("Need at least 2 numeric columns in your dataset."); st.stop()
@@ -1063,23 +1067,26 @@ elif analysis == "Composite Variable":
     comp_vars = st.multiselect(
         "Choose two or more variables",
         options=list(df.columns),
-        default=selected_vars if selected_vars else []
+        default=selected_vars if selected_vars else [],
+        key="comp_vars_multiselect"
     )
 
-    # ── Step 2 : new column name ───────────────────────────────────────────
+    # ── Step 2 : New column name ───────────────────────────────────────────
     st.markdown("#### Step 2 — Name the new composite column")
     new_col_name = st.text_input(
         "New column name",
         value="Composite_1",
-        help="This name will appear as a new column in your dataset"
+        help="This name will appear as a new column in your dataset",
+        key="comp_new_col_name"
     )
 
-    # ── Step 3 : method ────────────────────────────────────────────────────
+    # ── Step 3 : Method ────────────────────────────────────────────────────
     st.markdown("#### Step 3 — Choose aggregation method")
     method = st.radio(
         "Aggregation",
         options=["Mean (average)", "Sum (total)"],
-        horizontal=True
+        horizontal=True,
+        key="comp_agg_method"
     )
 
     # ── Show results only when enough variables are selected ──────────────
@@ -1194,10 +1201,17 @@ elif analysis == "Composite Variable":
                 use_container_width=True
             ):
                 st.session_state["df"] = df_new
-                st.success(
+                
+                # Store success message so it survives the rerun
+                st.session_state["composite_success_msg"] = (
                     f"✅ '{new_col_name}' has been added! "
                     "You can now select it in any other analysis from the sidebar."
                 )
+                
+                # Clear session state keys to reset inputs on the next run
+                for k in ["comp_vars_multiselect", "comp_new_col_name", "comp_agg_method"]:
+                    st.session_state.pop(k, None)
+                
                 st.rerun()
 
             # ── PDF report ──────────────────────────────────────────────────
