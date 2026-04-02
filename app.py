@@ -1069,11 +1069,11 @@ elif analysis == "Composite Variable":
     # ── Step 2 : new column name ───────────────────────────────────────────
     st.markdown("#### Step 2 — Name the new composite column")
     new_col_name = st.text_input(
-        "New column name",
-        value="Composite_1",
-        help="This name will appear as a new column in your dataset"
-    )
-
+    "New column name",
+    value="Composite_1",
+    key="composite_name",
+    help="This name will appear as a new column in your dataset"
+)
     # ── Step 3 : method ────────────────────────────────────────────────────
     st.markdown("#### Step 3 — Choose aggregation method")
     method = st.radio(
@@ -1194,12 +1194,16 @@ elif analysis == "Composite Variable":
                 use_container_width=True
             ):
                 st.session_state["df"] = df_new
+                # clear Step 2 field
+                st.session_state["composite_name"] = "Composite_1"
                 st.success(
                     f"✅ '{new_col_name}' has been added! "
                     "You can now select it in any other analysis from the sidebar."
                 )
-                st.rerun()
 
+                st.rerun()
+              
+           
             # ── PDF report ──────────────────────────────────────────────────
             report  = "COMPOSITE VARIABLE REPORT\n=========================\n\n"
             report += f"New Column     : {new_col_name}\n"
