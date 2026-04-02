@@ -149,48 +149,77 @@ with st.sidebar:
 
     df = st.session_state.get("df", None)
 
-    if df is not None:
-        all_cols = list(df.columns)
-        st.markdown("---")
-        st.markdown("## 📋  Variables")
-        selected_vars = st.multiselect("Independent / Analysis Variables", all_cols)
-        dep_var = st.selectbox("Dependent Variable  (Y)", [""] + all_cols)
-        st.markdown("---")
-        st.markdown("## 🔬  Analysis")
-        ANALYSES = [
-            "─── Descriptive ───",
-            "Descriptive Statistics",
-            "Frequency Analysis",
-            "─── Normality ───",
-            "Normality Tests",
-            "─── Graphs ───",
-            "Histogram",
-            "Scatter Plot",
-            "Boxplot",
-            "─── Scale & Validity ───",
-            "Reliability  (Cronbach Alpha)",
-            "Factor Analysis",
-            "─── Correlation ───",
-            "Correlation Analysis",
-            "Multicollinearity  (VIF)",
-            "─── Comparative ───",
-            "T-Test",
-            "Chi-Square",
-            "ANOVA  (One-Way)",
-            "─── Regression ───",
-            "Simple Regression",
-            "Multiple Regression",
-            "Logistic Regression",
-            "─── Mediation ───",
-            "Mediation Analysis",
-            "─── Data Tools ───",
-            "Composite Variable",
-        ]
-        analysis = st.selectbox("Select Analysis", ANALYSES)
-        run_btn = st.button("▶  Run Analysis", type="primary", use_container_width=True)
-    else:
-        selected_vars, dep_var, analysis, run_btn = [], "", None, False
-        st.info("📁 Please upload an Excel file to begin")
+if df is not None:
+    all_cols = list(df.columns)
+
+    st.markdown("---")
+    st.markdown("## 📋  Variables")
+
+    selected_vars = st.multiselect(
+        "Independent / Analysis Variables",
+        all_cols
+    )
+
+    dep_var = st.selectbox(
+        "Dependent Variable  (Y)",
+        [""] + all_cols
+    )
+
+    st.markdown("---")
+    st.markdown("## 🔬  Analysis")
+
+    ANALYSES = [
+        "─── Descriptive ───",
+        "Descriptive Statistics",
+        "Frequency Analysis",
+        "─── Normality ───",
+        "Normality Tests",
+        "─── Graphs ───",
+        "Histogram",
+        "Scatter Plot",
+        "Boxplot",
+        "─── Scale & Validity ───",
+        "Reliability  (Cronbach Alpha)",
+        "Factor Analysis",
+        "─── Correlation ───",
+        "Correlation Analysis",
+        "Multicollinearity  (VIF)",
+        "─── Comparative ───",
+        "T-Test",
+        "Chi-Square",
+        "ANOVA  (One-Way)",
+        "─── Regression ───",
+        "Simple Regression",
+        "Multiple Regression",
+        "Logistic Regression",
+        "─── Mediation ───",
+        "Mediation Analysis",
+        "─── Data Tools ───",
+        "Composite Variable",
+    ]
+
+    analysis = st.selectbox("Select Analysis", ANALYSES)
+
+    # Reset run button state when analysis changes
+    if "last_analysis" not in st.session_state:
+        st.session_state["last_analysis"] = analysis
+
+    if "run_analysis_clicked" not in st.session_state:
+        st.session_state["run_analysis_clicked"] = False
+
+    if st.session_state["last_analysis"] != analysis:
+        st.session_state["run_analysis_clicked"] = False
+        st.session_state["last_analysis"] = analysis
+
+    run_btn = st.button(
+        "▶  Run Analysis",
+        type="primary",
+        use_container_width=True
+    )
+
+else:
+    selected_vars, dep_var, analysis, run_btn = [], "", None, False
+    st.info("📁 Please upload an Excel file to begin")
 
     st.markdown("---")
     st.markdown("""
