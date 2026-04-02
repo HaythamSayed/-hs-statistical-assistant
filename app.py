@@ -279,8 +279,8 @@ if df is None:
 # ─────────────────────────────────────────────
 # DATA PREVIEW
 # ─────────────────────────────────────────────
-with st.expander("📋  Data Preview  (first 30 rows)", expanded=False):
-    st.dataframe(df.head(30), use_container_width=True)
+with st.expander("📋  Data Preview  (Full Dataset)", expanded=False):
+    st.dataframe(df, use_container_width=True)
 
 # ─────────────────────────────────────────────
 # PERSIST RUN BUTTON STATE
@@ -1170,9 +1170,9 @@ elif analysis == "Composite Variable":
             fig_comp.tight_layout(); st.pyplot(fig_comp)
 
             # ── Dataset preview ─────────────────────────────────────────────
-            st.markdown("#### 📋  Updated Dataset  (first 30 rows — selected cols + new column)")
+            st.markdown("#### 📋  Updated Dataset  (Full Dataset — selected cols + new column)")
             preview_cols = comp_vars + [new_col_name]
-            st.dataframe(df_new[preview_cols].head(30), use_container_width=True)
+            st.dataframe(df_new[preview_cols], use_container_width=True)
 
             # ── Download Excel ──────────────────────────────────────────────
             st.markdown("---")
