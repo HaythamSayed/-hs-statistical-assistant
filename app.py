@@ -169,6 +169,7 @@ with st.sidebar:
             "Scatter Plot",
             "Boxplot",
             "─── Scale & Validity ───",
+            "Likert Scale Analysis",
             "Reliability  (Cronbach Alpha)",
             "Factor Analysis",
             "─── Correlation ───",
@@ -242,6 +243,7 @@ if df is None:
         ("🔢", "Frequency Analysis",       "Frequency tables, Percent, Cumulative %, Bar Charts"),
         ("📐", "Normality Tests",           "Shapiro-Wilk · KS · Anderson-Darling · QQ-Plot · Histogram"),
         ("🔗", "Correlation Analysis",      "Pearson · Spearman · Heatmap · Significance matrices"),
+        ("💯", "Likert Scale Analysis",    "Stacked Bar Charts, Frequencies, Means for 5-point scales"),
         ("α",  "Reliability (Cronbach α)", "Cronbach's Alpha · Item-Total · Alpha-if-Deleted"),
         ("Σ",  "Factor Analysis",           "KMO · Bartlett · Varimax Rotation · Scree Plot · Communalities"),
         ("t",  "T-Test",                    "Independent Samples · Cohen's d · Levene's Test · Means Plot"),
@@ -1234,6 +1236,105 @@ elif analysis == "Composite Variable":
                 filename=f"composite_{new_col_name}_report.pdf"
             )
             plt.close(fig_comp)
+
+# ─────────────────────────────────────────────
+# 19. LIKERT SCALE ANALYSIS
+# ─────────────────────────────────────────────
+elif analysis == "Likert Scale Analysis":
+    if not selected_vars:
+        st.error("Please select at least one variable."); st.stop()
+    
+    st.subheader("💯  Likert Scale Analysis (5-Point)")
+    
+    # UI Customization
+    st.markdown("#### Step 1 — Setup Scale Labels")
+    col_l1, col_l2, col_l3, col_l4, col_l5 = st.columns(5)
+    lab1 = col_l1.text_input("1 = ", value="Strongly Disagree")
+    lab2 = col_l2.text_input("2 = ", value="Disagree")
+    lab3 = col_l3.text_input("3 = ", value="Neutral")
+    lab4 = col_l4.text_input("4 = ", value="Agree")
+    lab5 = col_l5.text_input("5 = ", value="Strongly Agree")
+    labels_dict = {1: lab1, 2: lab2, 3: lab3, 4: lab4, 5: lab5}
+    
+    # Validation & computation
+    data = df[selected_vars].apply(pd.to_numeric, errors="coerce").dropna(how="all")
+    if data.shape[0] == 0:
+        st.error("No valid numeric data found in selected variables."); st.stop()
+        
+    # Warn if values are out of 1-5 bounds
+    out_of_bounds = []
+    for col in selected_vars:
+        unique_vals = data[col].dropna().unique()
+        if any((val < 1 or val > 5) for val in unique_vals):
+            out_of_bounds.append(col)
+    
+    if out_of_bounds:
+        st.warning(f"⚠️ Some variables contain values outside the standard 1-5 range: {', '.join(out_of_bounds)}. They will be excluded from the 1-5 stacked chart calculations.")
+        
+    st.markdown("#### Step 2 — 100% Stacked Bar Chart")
+    
+    # Calculate frequencies
+    freq_dfs = []
+    for col in selected_vars:
+        counts = data[col].value_counts()
+        # Ensure all 1-5 categories exist
+        counts = counts.reindex([1, 2, 3, 4, 5], fill_value=0)
+        freq_dfs.append(counts)
+        
+    freq_data = pd.DataFrame(freq_dfs, index=selected_vars)
+    # Convert to percentages
+    freq_pct = freq_data.div(freq_data.sum(axis=1), axis=0) * 100
+    
+    # Plotting
+    fig_likert, ax = plt.subplots(figsize=(10, max(4, len(selected_vars) * 0.6)))
+    
+    # Standard Likert Colors (Dark Red -> Gray -> Dark Green)
+    colors = ["#d32f2f", "#ef5350", "#9e9e9e", "#66bb6a", "#2e7d32"]
+    
+    lefts = np.zeros(len(selected_vars))
+    for i, col_val in enumerate([1, 2, 3, 4, 5]):
+        widths = freq_pct[col_val].values
+        ax.barh(selected_vars, widths, left=lefts, color=colors[i], edgecolor="white", label=f"{col_val}: {labels_dict[col_val]}")
+        # Add text labels inside bars if wide enough
+        for y, x, width in zip(range(len(selected_vars)), lefts, widths):
+            if width > 5:  # Only show text if width > 5%
+                ax.text(x + width / 2, y, f"{width:.1f}%", ha='center', va='center', color='white', fontweight='bold', fontsize=9)
+        lefts += widths
+        
+    ax.set_xlim(0, 100)
+    ax.set_xlabel("Percentage (%)")
+    ax.set_title("Likert Scale Distribution", fontweight="bold", pad=20)
+    ax.legend(bbox_to_anchor=(0.5, 1.05), loc='lower center', ncol=3, fontsize=9)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    
+    fig_likert.tight_layout()
+    st.pyplot(fig_likert)
+    
+    st.markdown("#### Step 3 — Summary Statistics")
+    
+    summary_list = []
+    for col in selected_vars:
+        col_data = data[col].dropna()
+        summary_list.append({
+            "Variable": col,
+            "N": len(col_data),
+            "Mean": col_data.mean(),
+            "Std Dev": col_data.std(),
+            **{f"{k} (%)": v for k, v in zip([1, 2, 3, 4, 5], freq_pct.loc[col].values)}
+        })
+        
+    summary_df = pd.DataFrame(summary_list)
+    st.dataframe(summary_df.round(3), use_container_width=True)
+    
+    # Report Generation
+    report = "LIKERT SCALE ANALYSIS REPORT\n=============================\n\n"
+    report += "Labels Mapping:\n" + "\n".join([f"{k} = {v}" for k, v in labels_dict.items()]) + "\n\n"
+    report += "SUMMARY STATISTICS & PERCENTAGES\n"
+    report += summary_df.round(3).to_string(index=False)
+    
+    pdf_download_button("Likert Scale Report", report, figs=[fig_likert], filename="likert_scale_report.pdf")
+    plt.close(fig_likert)
 
 else:
     st.warning("Please select a specific analysis from the sidebar.")
