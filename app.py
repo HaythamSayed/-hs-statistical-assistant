@@ -103,7 +103,7 @@ def pdf_download_button(title, report, figs=None, filename="report.pdf"):
                        use_container_width=True)
 
 # ─────────────────────────────────────────────
-# INITIALISE df  ← THE FIX
+# INITIALISE df
 # ─────────────────────────────────────────────
 df: pd.DataFrame = st.session_state.get("df", None)
 
@@ -147,7 +147,6 @@ with st.sidebar:
         except Exception as exc:
             st.error(f"Error reading file: {exc}")
 
-    # Re-read df from session (handles page reloads)
     df = st.session_state.get("df", None)
 
     if df is not None:
@@ -184,6 +183,8 @@ with st.sidebar:
             "Logistic Regression",
             "─── Mediation ───",
             "Mediation Analysis",
+            "─── Data Tools ───",
+            "Composite Variable",
         ]
         analysis = st.selectbox("Select Analysis", ANALYSES)
         run_btn = st.button("▶  Run Analysis", type="primary", use_container_width=True)
@@ -218,7 +219,7 @@ with st.sidebar:
 </div>""", unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────
-# WELCOME SCREEN  (cards layout)
+# WELCOME SCREEN
 # ─────────────────────────────────────────────
 if df is None:
     st.markdown("""
@@ -250,9 +251,9 @@ if df is None:
         ("L",  "Logistic Regression",       "Odds Ratio · ROC/AUC · Cox-Snell R² · Classification Table"),
         ("⟳",  "Mediation Analysis",        "Bootstrap 1000 · Sobel Test · Path Diagram · Indirect Effect"),
         ("V",  "Multicollinearity (VIF)",   "VIF per variable · Interpretation guide"),
+        ("⊕",  "Composite Variable",        "Mean or Sum of selected variables · New column · Download updated dataset"),
     ]
 
-    # 4 columns grid
     cols_per_row = 4
     rows = [CARDS[i:i+cols_per_row] for i in range(0, len(CARDS), cols_per_row)]
 
@@ -1037,6 +1038,179 @@ elif analysis == "Mediation Analysis":
                         filename="mediation_report.pdf")
     plt.close(fig_med)
 
+# ─────────────────────────────────────────────
+# 18. COMPOSITE VARIABLE
+# ─────────────────────────────────────────────
+elif analysis == "Composite Variable":
+    st.subheader("⊕  Composite Variable Builder")
+
+    # ── Step 1 : pick columns ──────────────────────────────────────────────
+    num_cols = list(df.select_dtypes(include=np.number).columns)
+    if len(num_cols) < 2:
+        st.error("Need at least 2 numeric columns in your dataset."); st.stop()
+
+    st.markdown("#### Step 1 — Select columns to combine")
+    comp_vars = st.multiselect(
+        "Choose two or more variables",
+        options=list(df.columns),
+        default=selected_vars if selected_vars else []
+    )
+
+    # ── Step 2 : new column name ───────────────────────────────────────────
+    st.markdown("#### Step 2 — Name the new composite column")
+    new_col_name = st.text_input(
+        "New column name",
+        value="Composite_1",
+        help="This name will appear as a new column in your dataset"
+    )
+
+    # ── Step 3 : method ────────────────────────────────────────────────────
+    st.markdown("#### Step 3 — Choose aggregation method")
+    method = st.radio(
+        "Aggregation",
+        options=["Mean (average)", "Sum (total)"],
+        horizontal=True
+    )
+
+    # ── Validation ─────────────────────────────────────────────────────────
+    if len(comp_vars) < 2:
+        st.info("👆 Please select at least 2 variables above.")
+        st.stop()
+
+    if not new_col_name.strip():
+        st.warning("Please enter a name for the new column."); st.stop()
+
+    new_col_name = new_col_name.strip()
+
+    bad_cols = [c for c in comp_vars if not pd.api.types.is_numeric_dtype(df[c])]
+    if bad_cols:
+        st.error(f"These columns are not numeric: {', '.join(bad_cols)}"); st.stop()
+
+    # ── Compute ────────────────────────────────────────────────────────────
+    data_sub = df[comp_vars].apply(pd.to_numeric, errors="coerce")
+    if method.startswith("Mean"):
+        composite_values = data_sub.mean(axis=1)
+        method_label = "Mean"
+    else:
+        composite_values = data_sub.sum(axis=1)
+        method_label = "Sum"
+
+    valid_n   = data_sub.dropna(how="all").shape[0]
+    missing_n = data_sub.isna().any(axis=1).sum()
+
+    df_new = df.copy()
+    if new_col_name in df_new.columns:
+        st.warning(f"⚠️ Column '{new_col_name}' already exists and will be overwritten.")
+    df_new[new_col_name] = composite_values
+
+    # ── Summary ────────────────────────────────────────────────────────────
+    st.markdown("---")
+    st.markdown(
+        f"#### ✅  New Column: `{new_col_name}`  "
+        f"({method_label} of {len(comp_vars)} variables)"
+    )
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Method",           method_label)
+    c2.metric("Variables",        len(comp_vars))
+    c3.metric("Valid Rows",       int(valid_n))
+    c4.metric("Rows w/ Missing",  int(missing_n))
+
+    clean_vals = composite_values.dropna()
+    mean_v, std_v = clean_vals.mean(), clean_vals.std()
+
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Mean",  f"{mean_v:.4f}")
+    col2.metric("Std",   f"{std_v:.4f}")
+    col3.metric("Min",   f"{clean_vals.min():.4f}")
+    col4.metric("Max",   f"{clean_vals.max():.4f}")
+
+    # ── Inter-item correlation ─────────────────────────────────────────────
+    with st.expander("📊  Inter-item correlations (selected variables)", expanded=False):
+        st.dataframe(data_sub.corr().round(3), use_container_width=True)
+
+    # ── Distribution charts ────────────────────────────────────────────────
+    fig_comp, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
+
+    ax1.hist(clean_vals, bins=15, density=True, color="#93c5fd", edgecolor="white")
+    if std_v > 0:
+        xr = np.linspace(clean_vals.min(), clean_vals.max(), 200)
+        ax1.plot(xr,
+                 (1/(std_v*np.sqrt(2*np.pi))) * np.exp(-0.5*((xr-mean_v)/std_v)**2),
+                 color="#1e40af", linewidth=2, label="Normal curve")
+        ax1.legend()
+    ax1.set_title(f"Distribution of  {new_col_name}")
+    ax1.set_xlabel("Value"); ax1.set_ylabel("Density")
+
+    ax2.boxplot(clean_vals, patch_artist=True,
+                boxprops=dict(facecolor="#d1fae5", color="#065f46"),
+                medianprops=dict(color="#065f46", linewidth=2))
+    ax2.set_title(f"Boxplot — {new_col_name}"); ax2.set_ylabel("Value")
+
+    fig_comp.suptitle(
+        f"{method_label} of: {', '.join(comp_vars)}", fontsize=10, color="#6b7280"
+    )
+    fig_comp.tight_layout(); st.pyplot(fig_comp)
+
+    # ── Dataset preview ────────────────────────────────────────────────────
+    st.markdown("#### 📋  Updated Dataset  (first 30 rows — selected cols + new column)")
+    preview_cols = comp_vars + [new_col_name]
+    st.dataframe(df_new[preview_cols].head(30), use_container_width=True)
+
+    # ── Download Excel ─────────────────────────────────────────────────────
+    st.markdown("---")
+    st.markdown("#### 📥  Download Updated Dataset")
+    st.caption(
+        f"The Excel file below contains **all original columns** plus the new "
+        f"`{new_col_name}` column at the end."
+    )
+
+    excel_buf = io.BytesIO()
+    with pd.ExcelWriter(excel_buf, engine="openpyxl") as writer:
+        df_new.to_excel(writer, index=False, sheet_name="Data")
+    excel_buf.seek(0)
+
+    st.download_button(
+        label=f"📥  Download Excel  (with  '{new_col_name}')",
+        data=excel_buf,
+        file_name=f"data_with_{new_col_name}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        use_container_width=True
+    )
+
+    # ── Add to session (use in other analyses) ─────────────────────────────
+    if st.button(
+        f"➕  Add '{new_col_name}' to working dataset  (use in this session)",
+        use_container_width=True
+    ):
+        st.session_state["df"] = df_new
+        st.success(
+            f"✅ '{new_col_name}' has been added! "
+            "You can now select it in any other analysis from the sidebar."
+        )
+        st.rerun()
+
+    # ── PDF report ─────────────────────────────────────────────────────────
+    report  = "COMPOSITE VARIABLE REPORT\n=========================\n\n"
+    report += f"New Column     : {new_col_name}\n"
+    report += f"Method         : {method_label}\n"
+    report += f"Variables Used : {', '.join(comp_vars)}\n"
+    report += f"Valid Rows     : {valid_n}\n"
+    report += f"Rows w/ Missing: {missing_n}\n\n"
+    report += "DESCRIPTIVE STATISTICS\n"
+    report += f"  Mean = {mean_v:.4f}\n  Std  = {std_v:.4f}\n"
+    report += f"  Min  = {clean_vals.min():.4f}\n  Max  = {clean_vals.max():.4f}\n\n"
+    report += "INTER-ITEM CORRELATIONS\n"
+    report += data_sub.corr().round(3).to_string()
+
+    pdf_download_button(
+        f"Composite Variable Report — {new_col_name}",
+        report,
+        figs=[fig_comp],
+        filename=f"composite_{new_col_name}_report.pdf"
+    )
+    plt.close(fig_comp)
+
 else:
     st.warning("Please select a specific analysis from the sidebar.")
 
@@ -1050,7 +1224,7 @@ st.markdown("""
   DBA Candidate · MBA · MSc · MCTS · MCSE · SAS &nbsp;|&nbsp; © 2026 All Rights Reserved<br>
   <a href="https://www.linkedin.com/in/haytham-saleh-0b407226/" target="_blank"
      style="display:inline-flex; align-items:center; gap:5px; background:#0a66c2;
-            color:white; padding:4px 12px; border-radius:6px; text-decoration:none;
+            color:white; padding:5px 12px; border-radius:6px; text-decoration:none;
             font-weight:bold; font-size:.78rem; margin-top:6px;">
     <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
          fill="white" style="vertical-align:middle;">
