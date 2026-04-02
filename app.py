@@ -133,10 +133,11 @@ with st.sidebar:
     uploaded_file = st.file_uploader("Upload Excel File (.xlsx / .xls)",
                                      type=["xlsx", "xls"])
 
-    if uploaded_file:
+    if uploaded_file and "df" not in st.session_state:
         try:
             st.session_state["df"] = pd.read_excel(uploaded_file)
             df = st.session_state["df"]
+    
             st.success(f"✅ {df.shape[0]} rows × {df.shape[1]} columns")
             c1, c2 = st.columns(2)
             c1.metric("Rows",    df.shape[0])
