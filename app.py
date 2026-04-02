@@ -535,10 +535,14 @@ elif analysis == "Factor Analysis":
     if data.shape[0] == 0: st.error("No valid data."); st.stop()
     kmo_all, kmo_model  = calculate_kmo(data)
     chi2_val, bart_p    = calculate_bartlett_sphericity(data)
-    fa0 = FactorAnalyzer(rotation=None); fa0.fit(data)
+    
+    # Convert data to pure numpy float array to avoid sklearn check_array TypeErrors
+    X = data.to_numpy(dtype=float, copy=True)
+    
+    fa0 = FactorAnalyzer(rotation=None); fa0.fit(X)
     ev, _ = fa0.get_eigenvalues()
     n_factors = max(1, int(sum(ev > 1)))
-    fa = FactorAnalyzer(n_factors=n_factors, rotation="varimax"); fa.fit(data)
+    fa = FactorAnalyzer(n_factors=n_factors, rotation="varimax"); fa.fit(X)
     loadings = pd.DataFrame(fa.loadings_, index=selected_vars,
                              columns=[f"Factor {i+1}" for i in range(n_factors)])
     communalities = pd.DataFrame(fa.get_communalities(), index=selected_vars, columns=["Communality"])
