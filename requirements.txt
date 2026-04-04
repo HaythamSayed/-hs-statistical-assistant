@@ -9,3 +9,5 @@ reportlab>=4.1.0
 scikit-learn>=1.4.0
 factor-analyzer>=0.5.1
 xlrd>=2.0.1
+streamlit-ace>=0.1.1
+seaborn>=0.13.0
