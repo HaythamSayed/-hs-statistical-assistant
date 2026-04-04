@@ -187,6 +187,7 @@ with st.sidebar:
             "Mediation Analysis",
             "─── Data Tools ───",
             "Composite Variable",
+            "Python Syntax Editor",
         ]
         analysis = st.selectbox("Select Analysis", ANALYSES)
         run_btn = st.button("▶  Run Analysis", type="primary", use_container_width=True)
@@ -255,6 +256,7 @@ if df is None:
         ("⟳",  "Mediation Analysis",        "Bootstrap 1000 · Sobel Test · Path Diagram · Indirect Effect"),
         ("V",  "Multicollinearity (VIF)",   "VIF per variable · Interpretation guide"),
         ("⊕",  "Composite Variable",        "Mean or Sum of selected variables · New column · Download updated dataset"),
+        ("💻", "Python Syntax Editor",      "Write native Python code · Access 'df' · Live output & charts"),
     ]
 
     cols_per_row = 4
@@ -1367,6 +1369,154 @@ elif analysis == "Likert Scale Analysis":
     
     pdf_download_button("Likert Scale Report", report, figs=[fig_likert], filename="likert_scale_report.pdf")
     plt.close(fig_likert)
+
+# ─────────────────────────────────────────────
+# 20. PYTHON SYNTAX EDITOR
+# ─────────────────────────────────────────────
+elif analysis == "Python Syntax Editor":
+    st.subheader("💻  Python Syntax Editor (Sandbox)")
+    st.markdown("Write custom Python analysis leveraging your dataset (`df`). Popular libraries (`pd`, `np`, `plt`, `sns`, `stats`) are pre-imported for you. **Just write and run!**")
+    
+    try:
+        from streamlit_ace import st_ace
+    except ImportError:
+        st.error("Please install `streamlit-ace` (`pip install streamlit-ace>=0.1.1`) to use the advanced editor.")
+        st.stop()
+        
+    import ast
+    import io
+    import contextlib
+    import traceback
+    
+    # ── AST Security Sandbox ──
+    def is_safe_code(user_code):
+        try:
+            tree = ast.parse(user_code)
+        except SyntaxError:
+            return True, "" # SyntaxErrors get caught naturally by exec()
+        
+        banned_modules = {"os", "sys", "subprocess", "shutil", "urllib", "requests", "socket", "io", "pathlib", "streamlit"}
+        
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    if alias.name.split('.')[0] in banned_modules:
+                        return False, f"Importing '{alias.name}' is prohibited."
+            elif isinstance(node, ast.ImportFrom):
+                if node.module and node.module.split('.')[0] in banned_modules:
+                    return False, f"Importing from '{node.module}' is prohibited."
+            elif isinstance(node, ast.Call):
+                if isinstance(node.func, ast.Name) and node.func.id in {"open", "exec", "eval", "__import__"}:
+                    return False, f"Using the '{node.func.id}()' function is prohibited."
+        return True, ""
+
+    default_code = '''# Your dataset is pre-loaded as 'df'.
+# Example 1: Print descriptive stats
+print("Data Summary:")
+print(df.describe().round(2))
+print("\\n" + "-"*40 + "\\n")
+
+# Example 2: Plotting (Plots are automatically caught and displayed!)
+import seaborn as sns
+plt.figure(figsize=(6, 4))
+sns.histplot(df.iloc[:, 0].dropna(), kde=True, color="skyblue")
+plt.title("Distribution of First Column")
+
+# (Hit 'Run Syntax' to see the magic ✨)
+'''
+
+    st.markdown("---")
+    
+    # Editor Layout like Jamovi or SPSS (Side-by-side or stacked on small screens)
+    # Creating a 2 column layout: Editor on Left, Output on Right
+    c1, c2 = st.columns([1.1, 1], gap="large")
+    
+    with c1:
+        st.markdown("### 📝  Editor")
+        user_code = st_ace(
+            value=default_code,
+            language="python",
+            theme="monokai",
+            key="ace_editor",
+            height=400,
+            font_size=14,
+            show_gutter=True,
+            show_print_margin=False,
+            wrap=True,
+            auto_update=False # We want them to click the Run button to avoid partial runs
+        )
+        
+        run_script = st.button("▶️  Run Syntax", type="primary", use_container_width=True)
+        
+    with c2:
+        st.markdown("### 🖥️  Output")
+        
+        if run_script and user_code.strip():
+            safe, err_msg = is_safe_code(user_code)
+            if not safe:
+                st.error("🛑 **Security Violation:** " + err_msg)
+            else:
+                # Execution Environment Injection
+                try: import seaborn as sns
+                except: sns = None
+                
+                env = {
+                    "df": df.copy(),
+                    "pd": pd,
+                    "np": np,
+                    "plt": plt,
+                    "stats": stats,
+                    "sm": sm,
+                    "sns": sns
+                }
+                
+                output_buffer = io.StringIO()
+                plt.close("all") # Clear previous figures
+                
+                # Execute inside the sandbox
+                try:
+                    with contextlib.redirect_stdout(output_buffer), contextlib.redirect_stderr(output_buffer):
+                        exec(user_code, env)
+                        
+                    output_str = output_buffer.getvalue()
+                    
+                    # 1. Show Console Prints
+                    if output_str.strip():
+                        st.code(output_str, language="text")
+                    else:
+                        st.success("✅ Code executed successfully.")
+                        
+                    # 2. Show Plots captured implicitly
+                    figs = [plt.figure(n) for n in plt.get_fignums()]
+                    for fig in figs:
+                        st.pyplot(fig)
+                        plt.close(fig)
+                        
+                except Exception as e:
+                    output_str = output_buffer.getvalue()
+                    if output_str.strip():
+                        st.text_area("Console Output (Before Error)", value=output_str, height=150, disabled=True)
+                        
+                    import sys
+                    exc_type, exc_value, exc_traceback = sys.exc_info()
+                    tb_list = traceback.extract_tb(exc_traceback)
+                    
+                    user_tb_lines = []
+                    for frame in tb_list:
+                        if frame.filename == "<string>":
+                            user_tb_lines.append(f"Line {frame.lineno}: {frame.line}")
+                            
+                    error_name = exc_type.__name__
+                    error_msg = str(e)
+                    
+                    if user_tb_lines:
+                        formatted_trace = "\\n".join(user_tb_lines)
+                        st.error(f"🛑 **{error_name}:** {error_msg}")
+                        st.warning(f"**Location in your code:**\\n```python\\n{formatted_trace}\\n```")
+                    else:
+                        st.error(f"🛑 **{error_name}:** {error_msg}")
+        elif not run_script:
+            st.info("Write your Python syntax and press **▶️ Run Syntax**.")
 
 else:
     st.warning("Please select a specific analysis from the sidebar.")
