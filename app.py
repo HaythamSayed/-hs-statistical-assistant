@@ -27,6 +27,50 @@ except ImportError:
     def fix_arabic(text):
         return str(text)
 
+# Patch Matplotlib globally for Arabic (Guarded against Streamlit reruns)
+import matplotlib.axes
+import matplotlib.text
+
+if not getattr(matplotlib.axes.Axes.set_title, '_bidi_patched', False):
+    _orig_set_title = matplotlib.axes.Axes.set_title
+    def _bidi_set_title(self, label, fontdict=None, loc=None, pad=None, *, y=None, **kwargs):
+        return _orig_set_title(self, fix_arabic(label), fontdict=fontdict, loc=loc, pad=pad, y=y, **kwargs)
+    _bidi_set_title._bidi_patched = True
+    matplotlib.axes.Axes.set_title = _bidi_set_title
+
+    _orig_set_xlabel = matplotlib.axes.Axes.set_xlabel
+    def _bidi_set_xlabel(self, xlabel, fontdict=None, labelpad=None, *, loc=None, **kwargs):
+        return _orig_set_xlabel(self, fix_arabic(xlabel), fontdict=fontdict, labelpad=labelpad, loc=loc, **kwargs)
+    matplotlib.axes.Axes.set_xlabel = _bidi_set_xlabel
+
+    _orig_set_ylabel = matplotlib.axes.Axes.set_ylabel
+    def _bidi_set_ylabel(self, ylabel, fontdict=None, labelpad=None, *, loc=None, **kwargs):
+        return _orig_set_ylabel(self, fix_arabic(ylabel), fontdict=fontdict, labelpad=labelpad, loc=loc, **kwargs)
+    matplotlib.axes.Axes.set_ylabel = _bidi_set_ylabel
+
+    _orig_set_xticklabels = matplotlib.axes.Axes.set_xticklabels
+    def _bidi_set_xticklabels(self, labels, *, fontdict=None, minor=False, **kwargs):
+        fixed_labels = [fix_arabic(l) for l in labels]
+        return _orig_set_xticklabels(self, fixed_labels, fontdict=fontdict, minor=minor, **kwargs)
+    matplotlib.axes.Axes.set_xticklabels = _bidi_set_xticklabels
+
+    _orig_set_yticklabels = matplotlib.axes.Axes.set_yticklabels
+    def _bidi_set_yticklabels(self, labels, *, fontdict=None, minor=False, **kwargs):
+        fixed_labels = [fix_arabic(l) for l in labels]
+        return _orig_set_yticklabels(self, fixed_labels, fontdict=fontdict, minor=minor, **kwargs)
+    matplotlib.axes.Axes.set_yticklabels = _bidi_set_yticklabels
+
+    _orig_text = matplotlib.axes.Axes.text
+    def _bidi_text(self, x, y, s, fontdict=None, **kwargs):
+        return _orig_text(self, x, y, fix_arabic(s), fontdict=fontdict, **kwargs)
+    matplotlib.axes.Axes.text = _bidi_text
+
+    import matplotlib.figure
+    _orig_suptitle = matplotlib.figure.Figure.suptitle
+    def _bidi_suptitle(self, t, **kwargs):
+        return _orig_suptitle(self, fix_arabic(t), **kwargs)
+    matplotlib.figure.Figure.suptitle = _bidi_suptitle
+
 # ─────────────────────────────────────────────
 # PAGE CONFIG
 # ─────────────────────────────────────────────
@@ -372,7 +416,7 @@ elif analysis == "Frequency Analysis":
         st.markdown(f"#### Variable: `{col}`")
         st.dataframe(table, use_container_width=True)
         fig, ax = plt.subplots(figsize=(9, 4))
-        ax.bar(freq.index.astype(str), freq.values,
+        ax.bar([fix_arabic(x) for x in freq.index.astype(str)], freq.values,
                color="#3b82f6", edgecolor="white", linewidth=0.8)
         ax.set_title(f"Bar Chart — {col}", fontsize=13, fontweight="bold")
         ax.set_xlabel("Category"); ax.set_ylabel("Frequency")
@@ -489,7 +533,7 @@ elif analysis == "Boxplot":
     if not selected_vars: st.error("Please select at least one variable."); st.stop()
     data_list = [pd.to_numeric(df[c], errors="coerce").dropna().values for c in selected_vars]
     fig, ax = plt.subplots(figsize=(8, 5))
-    ax.boxplot(data_list, labels=selected_vars, patch_artist=True,
+    ax.boxplot(data_list, labels=[fix_arabic(c) for c in selected_vars], patch_artist=True,
                boxprops=dict(facecolor="#dbeafe", color="#1e40af"),
                medianprops=dict(color="#1e40af", linewidth=2))
     ax.set_title("Boxplot"); ax.set_ylabel("Value")
@@ -742,11 +786,11 @@ elif analysis == "T-Test":
                  use_container_width=True)
     st.markdown(f"#### 95% CI for Mean Difference:  [{ci_lo:.4f},  {ci_hi:.4f}]")
     fig_t, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 4))
-    ax1.boxplot([g1, g2], labels=[str(groups[0]), str(groups[1])], patch_artist=True,
+    ax1.boxplot([g1, g2], labels=[fix_arabic(str(groups[0])), fix_arabic(str(groups[1]))], patch_artist=True,
                 boxprops=dict(facecolor="#dbeafe", color="#1e40af"),
                 medianprops=dict(color="#1e40af", linewidth=2))
     ax1.set_title(f"Boxplot: {dep_var} by {group_var}"); ax1.set_ylabel(dep_var)
-    ax2.bar([str(groups[0]),str(groups[1])],[g1.mean(),g2.mean()],
+    ax2.bar([fix_arabic(str(groups[0])),fix_arabic(str(groups[1]))],[g1.mean(),g2.mean()],
             yerr=[g1.sem(),g2.sem()], capsize=6, color=["#3b82f6","#f59e0b"], edgecolor="white")
     ax2.set_title(f"Means ± SE: {dep_var}"); ax2.set_ylabel(dep_var)
     fig_t.tight_layout(); st.pyplot(fig_t)
@@ -796,10 +840,10 @@ elif analysis == "Chi-Square":
     fig_chi, ax = plt.subplots(figsize=(9, 4))
     x = np.arange(len(cross_tab.index)); width = 0.8/len(cross_tab.columns)
     for i, col in enumerate(cross_tab.columns):
-        ax.bar(x+i*width, cross_tab[col], width=width, label=str(col),
+        ax.bar(x+i*width, cross_tab[col], width=width, label=fix_arabic(str(col)),
                color=colors[i%len(colors)], edgecolor="white")
     ax.set_xticks(x+width*(len(cross_tab.columns)-1)/2)
-    ax.set_xticklabels([str(v) for v in cross_tab.index], rotation=30)
+    ax.set_xticklabels([fix_arabic(str(v)) for v in cross_tab.index], rotation=30)
     ax.set_title(f"Chi-Square: {var1} × {var2}", fontsize=13, fontweight="bold")
     ax.set_ylabel("Frequency"); ax.legend(title=var2)
     fig_chi.tight_layout(); st.pyplot(fig_chi)
@@ -852,7 +896,7 @@ elif analysis == "ANOVA  (One-Way)":
     fig_an, ax = plt.subplots(figsize=(8, 4))
     ax.errorbar(range(len(means)), means, yerr=cis, fmt="o-", capsize=6,
                 color="#3b82f6", ecolor="#1e40af", linewidth=2)
-    ax.set_xticks(range(len(means))); ax.set_xticklabels(labels)
+    ax.set_xticks(range(len(means))); ax.set_xticklabels([fix_arabic(l) for l in labels])
     ax.set_title("Means Plot with 95% CI", fontsize=13, fontweight="bold")
     ax.set_xlabel(group_var); ax.set_ylabel(dep_var)
     fig_an.tight_layout(); st.pyplot(fig_an)
@@ -1343,7 +1387,7 @@ elif analysis == "Likert Scale Analysis":
     lefts = np.zeros(len(selected_vars))
     for i, col_val in enumerate([1, 2, 3, 4, 5]):
         widths = freq_pct[col_val].values
-        ax.barh(selected_vars, widths, left=lefts, color=colors[i], edgecolor="white", label=f"{col_val}: {labels_dict[col_val]}")
+        ax.barh([fix_arabic(sv) for sv in selected_vars], widths, left=lefts, color=colors[i], edgecolor="white", label=fix_arabic(f"{col_val}: {labels_dict[col_val]}"))
         # Add text labels inside bars if wide enough
         for y, x, width in zip(range(len(selected_vars)), lefts, widths):
             if width > 5:  # Only show text if width > 5%
