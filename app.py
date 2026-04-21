@@ -14,6 +14,19 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Pref
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.pagesizes import A4
 
+try:
+    import arabic_reshaper
+    from bidi.algorithm import get_display
+    def fix_arabic(text):
+        if not isinstance(text, str):
+            text = str(text)
+        reshaped_text = arabic_reshaper.reshape(text)
+        bidi_text = get_display(reshaped_text)
+        return bidi_text
+except ImportError:
+    def fix_arabic(text):
+        return str(text)
+
 # ─────────────────────────────────────────────
 # PAGE CONFIG
 # ─────────────────────────────────────────────
@@ -1555,15 +1568,18 @@ elif analysis == "Fornell-Larcker Criterion":
                 if loadings is not None:
                     st.markdown(f"**{c_name} Loadings**")
                     st.dataframe(loadings.round(3), use_container_width=True)
-        
         # Heatmap Optional Plot
         import seaborn as sns
         fig_fl, ax = plt.subplots(figsize=(max(5, len(fl_matrix.columns) * 1.2), max(4, len(fl_matrix.index) * 1.2)))
         
+        # Format labels using the fix_arabic helper
+        formatted_labels = [fix_arabic(c) for c in corr_matrix.columns]
+        
         # Plot full corr matrix using heatmap to show intensities
         sns.heatmap(corr_matrix, annot=True, fmt=".2f", cmap="coolwarm", vmin=-1, vmax=1, 
-                    ax=ax, linewidths=0.5, cbar_kws={"shrink": 0.8})
-        ax.set_title("Construct Correlation Heatmap", fontsize=13, fontweight="bold")
+                    ax=ax, linewidths=0.5, cbar_kws={"shrink": 0.8},
+                    xticklabels=formatted_labels, yticklabels=formatted_labels)
+        ax.set_title(fix_arabic("Construct Correlation Heatmap"), fontsize=13, fontweight="bold")
         fig_fl.tight_layout()
         st.pyplot(fig_fl)
         
