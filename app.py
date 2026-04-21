@@ -172,6 +172,7 @@ with st.sidebar:
             "Likert Scale Analysis",
             "Reliability  (Cronbach Alpha)",
             "Factor Analysis",
+            "Fornell-Larcker Criterion",
             "─── Correlation ───",
             "Correlation Analysis",
             "Multicollinearity  (VIF)",
@@ -247,6 +248,7 @@ if df is None:
         ("💯", "Likert Scale Analysis",    "Stacked Bar Charts, Frequencies, Means for 5-point scales"),
         ("α",  "Reliability (Cronbach α)", "Cronbach's Alpha · Item-Total · Alpha-if-Deleted"),
         ("Σ",  "Factor Analysis",           "KMO · Bartlett · Varimax Rotation · Scree Plot · Communalities"),
+        ("🔲", "Fornell-Larcker Criterion", "Discriminant validity · AVE vs Latent Correlations"),
         ("t",  "T-Test",                    "Independent Samples · Cohen's d · Levene's Test · Means Plot"),
         ("χ²", "Chi-Square",               "Contingency Table · Cramer's V · Expected Freq · Heatmap"),
         ("F",  "ANOVA (One-Way)",           "F-statistic · Eta² · Post-Hoc Tukey HSD · Means Plot"),
@@ -1369,6 +1371,222 @@ elif analysis == "Likert Scale Analysis":
     
     pdf_download_button("Likert Scale Report", report, figs=[fig_likert], filename="likert_scale_report.pdf")
     plt.close(fig_likert)
+
+# ─────────────────────────────────────────────
+# 19-B. FORNELL-LARCKER CRITERION
+# ─────────────────────────────────────────────
+elif analysis == "Fornell-Larcker Criterion":
+    st.subheader("🔲  Fornell-Larcker Criterion  (Discriminant Validity)")
+    
+    # Needs factor analyzer to compute AVE (by extracting 1 factor per construct)
+    try:
+        from factor_analyzer import FactorAnalyzer
+    except ImportError:
+        st.error("Please install `factor_analyzer` to run this analysis."); st.stop()
+        
+    num_numeric = len(df.select_dtypes(include=np.number).columns)
+    if num_numeric < 2:
+        st.error("You need at least 2 numeric variables for this analysis."); st.stop()
+
+    st.markdown("#### Step 1 — Define Constructs")
+    
+    num_constructs = st.number_input("Number of Constructs", min_value=2, max_value=15, value=2, step=1)
+    
+    # Layout constructs in 2 columns
+    construct_cols = st.columns(2)
+    construct_defs = []
+    
+    for i in range(num_constructs):
+        with construct_cols[i % 2]:
+            st.markdown(f"**Construct {i+1}**")
+            c_name = st.text_input(f"Name for Construct {i+1}", value=f"Construct_{i+1}", key=f"fl_name_{i}")
+            c_vars = st.multiselect(f"Variables for '{c_name}'", 
+                                    options=list(df.columns), 
+                                    key=f"fl_vars_{i}",
+                                    default=selected_vars if len(selected_vars) > 0 and i == 0 else [])
+            construct_defs.append({"name": c_name.strip(), "vars": c_vars})
+            st.markdown("---")
+            
+    run_fl = st.button("▶️  Calculate Fornell-Larcker Criterion", type="primary", use_container_width=True)
+    
+    if run_fl:
+        # Validations
+        valid_constructs = []
+        for c in construct_defs:
+            if not c["name"]:
+                st.error("All constructs must have a name."); st.stop()
+            if len(c["vars"]) < 1:
+                st.error(f"Construct '{c['name']}' must have at least 1 variable."); st.stop()
+            valid_constructs.append(c)
+            
+        construct_names = [c["name"] for c in valid_constructs]
+        if len(set(construct_names)) != len(construct_names):
+            st.error("Construct names must be unique."); st.stop()
+
+        # Step 1: Compute Construct Scores and AVE
+        construct_scores = pd.DataFrame(index=df.index)
+        ave_dict = {}
+        loadings_dict = {}
+        
+        st.markdown("#### Step 2 — Analysis Results")
+        
+        for c in valid_constructs:
+            c_name = c["name"]
+            c_vars = c["vars"]
+            
+            # Numeric conversion & drop NA for current construct
+            data_sub = df[c_vars].apply(pd.to_numeric, errors="coerce").dropna()
+            
+            if len(data_sub) < 3:
+                st.warning(f"Construct '{c_name}' doesn't have enough valid data rows. Skipping."); continue
+                
+            # Construct Score: Simple Mean
+            construct_scores[c_name] = data_sub.mean(axis=1)
+            
+            # AVE Calculation: Extract 1 factor (no rotation)
+            # If 1 var, AVE = 1.0
+            if len(c_vars) == 1:
+                ave_dict[c_name] = 1.0
+                loadings_dict[c_name] = pd.DataFrame({"Loading": [1.0]}, index=c_vars)
+            else:
+                # Check variance
+                variances = data_sub.var()
+                valid_cols = variances[variances > 0].index.tolist()
+                
+                if len(valid_cols) < 2:
+                    ave_dict[c_name] = np.nan
+                    loadings_dict[c_name] = None
+                    continue
+                    
+                data_sub_valid = data_sub[valid_cols]
+                X = data_sub_valid.to_numpy(dtype=float, copy=True)
+                
+                try:
+                    fa = FactorAnalyzer(n_factors=1, rotation=None)
+                    fa.fit(X)
+                    
+                    # AVE = Mean of squared loadings
+                    loadings = fa.loadings_[:, 0]
+                    ave = np.mean(loadings ** 2)
+                    ave_dict[c_name] = ave
+                    loadings_dict[c_name] = pd.DataFrame({"Loading (1 Factor)": loadings}, index=valid_cols)
+                    
+                except Exception as e:
+                    st.warning(f"Factor extraction failed for '{c_name}': {e}")
+                    ave_dict[c_name] = np.nan
+        
+        # Determine overlapping rows for correlation
+        valid_scores = construct_scores.dropna()
+        if len(valid_scores) < 3:
+            st.error("Not enough overlapping valid data points across constructs to compute correlations."); st.stop()
+            
+        # Step 2: Correlation Matrix
+        corr_matrix = valid_scores.corr()
+        
+        # Step 3: Fornell-Larcker Matrix
+        fl_matrix = corr_matrix.copy()
+        
+        # Fill diagonal with SQRT(AVE)
+        for c in fl_matrix.columns:
+            if c in ave_dict and not np.isnan(ave_dict[c]):
+                fl_matrix.loc[c, c] = np.sqrt(ave_dict[c])
+            else:
+                fl_matrix.loc[c, c] = np.nan
+        
+        # Lower triangular presentation + Diagonal comparison check
+        fl_display = pd.DataFrame(index=fl_matrix.index, columns=fl_matrix.columns, dtype=str)
+        passed_validity = True
+        violation_messages = []
+        
+        for i, row_c in enumerate(fl_matrix.index):
+            for j, col_c in enumerate(fl_matrix.columns):
+                val = fl_matrix.loc[row_c, col_c]
+                if pd.isna(val):
+                    fl_display.loc[row_c, col_c] = "N/A"
+                    continue
+                    
+                if i == j: # Diagonal
+                    fl_display.loc[row_c, col_c] = f"({val:.3f})"
+                elif i > j: # Lower triangle
+                    fl_display.loc[row_c, col_c] = f"{val:.3f}"
+                    # Check discriminant validity
+                    diag_i = fl_matrix.loc[row_c, row_c]
+                    diag_j = fl_matrix.loc[col_c, col_c]
+                    if val > diag_i or val > diag_j:
+                        passed_validity = False
+                        violation_messages.append(f"Correlation between '{row_c}' and '{col_c}' ({val:.3f}) exceeds the SQRT of AVE for one or both constructs.")
+                else: # Upper triangle
+                    fl_display.loc[row_c, col_c] = ""
+                    
+        # Summary Metrics
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Constructs Evaluated", len([c for c in fl_matrix.columns if c in ave_dict]))
+        c2.metric("Sample Size (Listwise)", len(valid_scores))
+        
+        if passed_validity and not pd.isna(fl_matrix.values.diagonal()).any():
+            c3.metric("Discriminant Validity", "✅ Passed")
+            st.success("**Conclusion:** Discriminant validity is established! The square root of AVE for each construct (diagonal values in parentheses) is strictly greater than its maximum relationship (correlation) with all other constructs.")
+        else:
+            c3.metric("Discriminant Validity", "❌ Failed / Partial")
+            st.error("**Conclusion:** Discriminant validity is violated! The square root of AVE for some constructs is lower than their correlation with other constructs.")
+            if violation_messages:
+                for msg in violation_messages:
+                    st.info(f"⚠️ {msg}")
+        
+        st.markdown(
+            "#### Fornell-Larcker Criterion Table\\n"
+            "*Values on the diagonal (in parentheses) represent the square root of the AVE. Off-diagonal values are Pearson correlations between constructs.*"
+        )
+        
+        # Style diagonal differently
+        def style_fl(val):
+            if isinstance(val, str) and val.startswith('('):
+                return 'font-weight: bold; background-color: #f0fdf4; color: #166534'
+            return ''
+            
+        st.dataframe(fl_display.style.map(style_fl), use_container_width=True)
+        
+        with st.expander("🔍  See AVE & Factor Loadings Details", expanded=False):
+            st.markdown(f"**Average Variance Extracted (AVE)**: Required > 0.5 for convergent validity.")
+            ave_df = pd.DataFrame.from_dict(ave_dict, orient='index', columns=['AVE'])
+            st.dataframe(ave_df.round(3), use_container_width=True)
+            
+            for c_name, loadings in loadings_dict.items():
+                if loadings is not None:
+                    st.markdown(f"**{c_name} Loadings**")
+                    st.dataframe(loadings.round(3), use_container_width=True)
+        
+        # Heatmap Optional Plot
+        import seaborn as sns
+        fig_fl, ax = plt.subplots(figsize=(max(5, len(fl_matrix.columns) * 1.2), max(4, len(fl_matrix.index) * 1.2)))
+        
+        # Plot full corr matrix using heatmap to show intensities
+        sns.heatmap(corr_matrix, annot=True, fmt=".2f", cmap="coolwarm", vmin=-1, vmax=1, 
+                    ax=ax, linewidths=0.5, cbar_kws={"shrink": 0.8})
+        ax.set_title("Construct Correlation Heatmap", fontsize=13, fontweight="bold")
+        fig_fl.tight_layout()
+        st.pyplot(fig_fl)
+        
+        # Create Text Report
+        report = "FORNELL-LARCKER CRITERION REPORT\n================================\n\n"
+        report += f"Sample Size (Listwise Valid) = {len(valid_scores)}\n\n"
+        report += "FORNELL-LARCKER CRITERION TABLE\n"
+        report += "(Diagonal values in parentheses are SQRT of AVE. Off-diagonals are correlations.)\n"
+        report += fl_display.to_string() + "\n\n"
+        
+        report += "AVERAGE VARIANCE EXTRACTED (AVE)\n"
+        report += ave_df.round(3).to_string() + "\n\n"
+        
+        if passed_validity and not pd.isna(fl_matrix.values.diagonal()).any():
+            report += "CONCLUSION: DISCRIMINANT VALIDITY ESTABLISHED.\n"
+            report += "The square root of AVE for each construct is greater than its highest correlation with any other construct.\n"
+        else:
+            report += "CONCLUSION: DISCRIMINANT VALIDITY VIOLATED.\n"
+            for msg in violation_messages:
+                report += f"- {msg}\n"
+                
+        pdf_download_button("Fornell-Larcker Report", report, figs=[fig_fl], filename="fornell_larcker_report.pdf")
+        plt.close(fig_fl)
 
 # ─────────────────────────────────────────────
 # 20. PYTHON SYNTAX EDITOR
