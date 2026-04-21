@@ -11,8 +11,5 @@ factor-analyzer>=0.5.1
 xlrd>=2.0.1
 streamlit-ace>=0.1.1
 seaborn>=0.13.0
-a r a b i c - r e s h a p e r > = 3 . 0 . 0 
- 
- p y t h o n - b i d i > = 0 . 6 . 0 
- 
- 
+arabic-reshaper>=3.0.0
+python-bidi>=0.6.0
